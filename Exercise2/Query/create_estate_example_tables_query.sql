@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS estate;
 DROP TABLE IF EXISTS house;
 DROP TABLE IF EXISTS person;
 DROP TABLE IF EXISTS apartment;
+DROP TABLE IF EXISTS estate_agent;
 
 
 CREATE TABLE IF NOT EXISTS estate_agent (
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS estate_agent (
     login_password TEXT NOT NULL
 );
 
+--- is estate necessary? ---
 CREATE TABLE IF NOT EXISTS estate (
     id SERIAL PRIMARY KEY,
     city TEXT NOT NULL,
@@ -63,6 +65,7 @@ CREATE TABLE IF NOT EXISTS person (
     address TEXT
 );
 
+--- is contract necessary? ---
 CREATE TABLE IF NOT EXISTS contract (
     contract_id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
@@ -71,6 +74,7 @@ CREATE TABLE IF NOT EXISTS contract (
     CONSTRAINT fk_person_id_contract FOREIGN KEY (person_id) REFERENCES person(id)
 );
 
+--- are the relationships correct here? Own table? ---
 CREATE TABLE IF NOT EXISTS tenancy_contract (
     contract_id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
