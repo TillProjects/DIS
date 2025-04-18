@@ -1,0 +1,13 @@
+# system files
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# Logs oder temporäres
+*.log
+.env
