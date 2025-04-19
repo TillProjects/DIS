@@ -1,0 +1,29 @@
+services:
+  dis:
+    image: postgres:15
+    container_name: dis
+    environment:
+      # Hier holt sich Compose automatisch POSTGRES_DB etc. aus der .env
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    depends_on:
+      - dis
+    environment:
+      # DATABASE_URL baut sich ebenso aus den .env‑Werten zusammen
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@dis:5432/${POSTGRES_DB}
+    volumes:
+      - .:/app:delegated
+    ports:
+      - "${APP_PORT}:8000"
+    command: ["tail", "-f", "/dev/null"]
+
+volumes:
+  db-data:
