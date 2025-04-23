@@ -1,0 +1,27 @@
+[project]
+name = "dis-exercise"
+version = "0.1.0"
+description = "Database exercises in Python"
+authors = [
+    {name = "Till"},
+    {name = "Victor"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "psycopg2-binary>=2.9",
+    "python-dotenv",
+    "sqlalchemy (>=2.0.40,<3.0.0)"
+]
+
+[tool.poetry]
+packages = [
+    { include = "exercise2", from = "scr" }
+]
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

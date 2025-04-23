@@ -1,0 +1,16 @@
+services:
+  dis:
+    image: postgres:15
+    container_name: dis_docker_container
+    environment:
+      # Hier holt sich Compose automatisch POSTGRES_DB etc. aus der .env
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  db-data:
