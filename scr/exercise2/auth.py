@@ -1,10 +1,10 @@
-from db_connection_manager import db_connection_manager
+from db_connection_manager import DbConnectionManager
 
 class Auth:
     ADMIN_PASSWORD = "admin123"
 
     def __init__(self):
-        self.db = db_connection_manager.get_instance().get_connection()
+        self.db = DbConnectionManager.get_instance().get_connection()
 
     def admin_login(self):
         password = input("\nEnter admin password: ")

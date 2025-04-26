@@ -1,11 +1,11 @@
-from db_connection_manager import db_connection_manager
+from db_connection_manager import DbConnectionManager
 from exercise2.contract_manager import ContractManager
 from exercise2.person_manager import PersonManager
 
 
 class EstateManager:
     def __init__(self):
-        self.db = db_connection_manager.get_instance().get_connection()
+        self.db = DbConnectionManager.get_instance().get_connection()
         self.current_agent_id = None
 
     def agent_login(self):
