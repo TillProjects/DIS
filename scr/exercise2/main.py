@@ -1,31 +1,27 @@
-import os
-import psycopg2
-from dotenv import load_dotenv
+from auth import Auth
+from estate_manager import EstateManager
 
-# .env-Datei laden
-load_dotenv()
 
-# Umgebungsvariablen laden
-db   = os.getenv("POSTGRES_DB")
-user = os.getenv("POSTGRES_USER")
-pwd  = os.getenv("POSTGRES_PASSWORD")
-host = os.getenv("DB_HOST", "localhost")
-port = os.getenv("DB_PORT", "5432")
+def main():
+    while True:
+        print("\n=== Real Estate Management System ===")
+        print("1. Admin Login (Manage Estate Agents)")
+        print("2. Estate Agent Login (Manage Estates, Persons, Contracts)")
+        print("3. Exit")
+        choice = input("Choose an option: ")
 
-# Verbindung herstellen
-dsn = f"postgresql://{user}:{pwd}@{host}:{port}/{db}"
+        if choice == "1":
+            auth = Auth()
+            auth.admin_login()
+        elif choice == "2":
+            estate_manager = EstateManager()
+            estate_manager.agent_login()
+        elif choice == "3":
+            print("\nGoodbye.")
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
-try:
-    conn = psycopg2.connect(dsn)
-    cur = conn.cursor()
-    cur.execute("SELECT version();")
-    version = cur.fetchone()
-    print(f"✅ Verbunden mit PostgreSQL\n🔢 Version: {version[0]}")
-except psycopg2.Error as e:
-    print("❌ Fehler bei der Verbindung zur Datenbank:")
-    print(e)
-finally:
-    if 'cur' in locals():
-        cur.close()
-    if 'conn' in locals():
-        conn.close()
+
+if __name__ == "__main__":
+    main()
