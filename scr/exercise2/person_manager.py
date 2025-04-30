@@ -1,4 +1,5 @@
 from db_connection_manager import DbConnectionManager
+from utils.db_helpers import execute_query
 
 class PersonManager:
     def __init__(self):
@@ -13,82 +14,54 @@ class PersonManager:
             print("4. Back")
             choice = input("Choose an option: ")
 
-            if choice == "1":
-                self.create_person()
-            elif choice == "2":
-                self.update_person()
-            elif choice == "3":
-                self.delete_person()
-            elif choice == "4":
-                break
-            else:
-                print("Invalid choice. Please try again.")
+            match choice:
+                case "1":
+                    self.create_person()
+                case "2":
+                    self.update_person()
+                case "3":
+                    self.delete_person()
+                case "4":
+                    break
+                case _:
+                    print("Invalid choice. Please try again.")
 
     def create_person(self):
         print("\n--- Create New Person ---")
-        first_name = input("First Name: ")
-        surname = input("Surname: ")
-        address = input("Address: ")
+        data = {
+            "first_name": input("First Name: "),
+            "surname": input("Surname: "),
+            "address": input("Address: ")
+        }
 
-        cur = self.db.cursor()
-        try:
-            cur.execute(
-                """
-                INSERT INTO person (first_name, surname, address)
-                VALUES (%s, %s, %s)
-                """,
-                (first_name, surname, address)
-            )
-            self.db.commit()
-            print("\nPerson created successfully.")
-        except Exception as e:
-            print(f"\nError creating person: {e}")
-            self.db.rollback()
-        finally:
-            cur.close()
+        query = """
+            INSERT INTO person (first_name, surname, address)
+            VALUES (%s, %s, %s)
+        """
+        execute_query(self.db, query, tuple(data.values()))
+        print("\nPerson created successfully.")
 
     def update_person(self):
         print("\n--- Update Person ---")
         person_id = input("Enter the ID of the person to update: ")
-        first_name = input("New First Name: ")
-        surname = input("New Surname: ")
-        address = input("New Address: ")
+        data = {
+            "first_name": input("New First Name: "),
+            "surname": input("New Surname: "),
+            "address": input("New Address: ")
+        }
 
-        cur = self.db.cursor()
-        try:
-            cur.execute(
-                """
-                UPDATE person
-                SET first_name = %s, surname = %s, address = %s
-                WHERE id = %s
-                """,
-                (first_name, surname, address, person_id)
-            )
-            self.db.commit()
-            print("\nPerson updated successfully.")
-        except Exception as e:
-            print(f"\nError updating person: {e}")
-            self.db.rollback()
-        finally:
-            cur.close()
+        query = """
+            UPDATE person
+            SET first_name = %s, surname = %s, address = %s
+            WHERE id = %s
+        """
+        execute_query(self.db, query, (*data.values(), person_id))
+        print("\nPerson updated successfully.")
 
     def delete_person(self):
         print("\n--- Delete Person ---")
         person_id = input("Enter the ID of the person to delete: ")
 
-        cur = self.db.cursor()
-        try:
-            cur.execute(
-                """
-                DELETE FROM person
-                WHERE id = %s
-                """,
-                (person_id,)
-            )
-            self.db.commit()
-            print("\nPerson deleted successfully.")
-        except Exception as e:
-            print(f"\nError deleting person: {e}")
-            self.db.rollback()
-        finally:
-            cur.close()
+        query = "DELETE FROM person WHERE id = %s"
+        execute_query(self.db, query, (person_id,))
+        print("\nPerson deleted successfully.")

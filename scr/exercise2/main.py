@@ -1,26 +1,28 @@
 from auth import Auth
 from estate_manager import EstateManager
+from utils.db_helpers import menu
 
 
 def main():
-    while True:
-        print("\n=== Real Estate Management System ===")
-        print("1. Admin Login (Manage Estate Agents)")
-        print("2. Estate Agent Login (Manage Estates, Persons, Contracts)")
-        print("3. Exit")
-        choice = input("Choose an option: ")
+    running = True
 
-        if choice == "1":
-            auth = Auth()
-            auth.admin_login()
-        elif choice == "2":
-            estate_manager = EstateManager()
-            estate_manager.agent_login()
-        elif choice == "3":
-            print("\nGoodbye.")
-            break
-        else:
-            print("Invalid choice. Please try again.")
+    def admin_login():
+        Auth().admin_login()
+
+    def agent_login():
+        EstateManager().agent_login()
+
+    def exit_program():
+        nonlocal running
+        print("\nGoodbye.")
+        running = False
+
+    while running:
+        menu("Real Estate Management System", [
+            ("Admin Login (Manage Estate Agents)", admin_login),
+            ("Estate Agent Login (Manage Estates, Persons, Contracts)", agent_login),
+            ("Exit", exit_program)
+        ])
 
 
 if __name__ == "__main__":

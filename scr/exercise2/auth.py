@@ -1,4 +1,5 @@
 from db_connection_manager import DbConnectionManager
+from utils.db_helpers import execute_query, menu
 
 class Auth:
     ADMIN_PASSWORD = "admin123"
@@ -15,91 +16,54 @@ class Auth:
             print("\nIncorrect password.")
 
     def admin_menu(self):
-        while True:
-            print("\n--- Admin Menu ---")
-            print("1. Create Estate Agent")
-            print("2. Update Estate Agent")
-            print("3. Delete Estate Agent")
-            print("4. Back to Main Menu")
-            choice = input("Choose an option: ")
-
-            if choice == "1":
-                self.create_estate_agent()
-            elif choice == "2":
-                self.update_estate_agent()
-            elif choice == "3":
-                self.delete_estate_agent()
-            elif choice == "4":
-                break
-            else:
-                print("Invalid choice. Please try again.")
+        menu("Admin Menu", [
+            ("Create Estate Agent", self.create_estate_agent),
+            ("Update Estate Agent", self.update_estate_agent),
+            ("Delete Estate Agent", self.delete_estate_agent),
+            ("Back to Main Menu", lambda: None)
+        ])
 
     def create_estate_agent(self):
         print("\n--- Create New Estate Agent ---")
-        name = input("Name: ")
-        address = input("Address: ")
-        login_name = input("Login Name: ")
-        login_password = input("Login Password: ")
+        data = {
+            "name": input("Name: "),
+            "address": input("Address: "),
+            "login_name": input("Login Name: "),
+            "login_password": input("Login Password: "),
+        }
 
-        cur = self.db.cursor()
-        try:
-            cur.execute(
-                """
+        query = """
                 INSERT INTO estate_agent (name, address, login_name, login_password)
                 VALUES (%s, %s, %s, %s)
-                """,
-                (name, address, login_name, login_password)
-            )
-            self.db.commit()
-            print("\nEstate agent created successfully.")
-        except Exception as e:
-            print(f"\nError creating estate agent: {e}")
-            self.db.rollback()
-        finally:
-            cur.close()
+            """
+        execute_query(self.db, query, tuple(data.values()))
+        print("\nEstate agent created successfully.")
 
     def update_estate_agent(self):
         print("\n--- Update Estate Agent ---")
         agent_id = input("Enter the ID of the agent to update: ")
-        new_name = input("New Name: ")
-        new_address = input("New Address: ")
-        new_password = input("New Password: ")
 
-        cur = self.db.cursor()
-        try:
-            cur.execute(
-                """
-                UPDATE estate_agent
-                SET name = %s, address = %s, login_password = %s
-                WHERE id = %s
-                """,
-                (new_name, new_address, new_password, agent_id)
-            )
-            self.db.commit()
-            print("\nEstate agent updated successfully.")
-        except Exception as e:
-            print(f"\nError updating estate agent: {e}")
-            self.db.rollback()
-        finally:
-            cur.close()
+        data = {
+            "name": input("New Name: "),
+            "address": input("New Address: "),
+            "login_password": input("New Password: ")
+        }
+
+        query = """
+            UPDATE estate_agent
+            SET name = %s, address = %s, login_password = %s
+            WHERE id = %s
+        """
+        execute_query(self.db, query, (*data.values(), agent_id))
+        print("\nEstate agent updated successfully.")
 
     def delete_estate_agent(self):
         print("\n--- Delete Estate Agent ---")
-        agent_id = input("Enter the ID of the agent to delete: ")
+        data = {
+            "id": input("Enter the ID of the agent to delete: ")
+        }
 
-        cur = self.db.cursor()
-        try:
-            cur.execute(
-                """
-                DELETE FROM estate_agent
-                WHERE id = %s
-                """,
-                (agent_id,)
-            )
-            self.db.commit()
-            print("\nEstate agent deleted successfully.")
-        except Exception as e:
-            print(f"\nError deleting estate agent: {e}")
-            self.db.rollback()
-        finally:
-            cur.close()
+        query = "DELETE FROM estate_agent WHERE id = %s"
+        execute_query(self.db, query, (data["id"],))
+        print("\nEstate agent deleted successfully.")
+
