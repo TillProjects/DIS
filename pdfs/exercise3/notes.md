@@ -150,3 +150,33 @@ T1: COMMIT                                         -- T1 kann erfolgreich abschl
 - T2 wird durch die Datenbank **automatisch abgebrochen** (`ROLLBACK`), um den Deadlock aufzulösen.
 - T1 kann anschließend **erfolgreich committen**.
 
+
+
+## 3.3
+
+### a) 
+![3-3-a.png](3-3-a.png)
+
+### b)
+![3-3-b.JPG](3-3-b.JPG)
+
+### c)
+S1 = r1(x) w2(x) c2 w1(x) r1(x) c1
+
+- **Abhängigkeiten:** T1 → T2, T2 → T1
+- **Ergebnis:** nicht Serialisierbar  
+- **Beobachtung:** Wert von `x` unterscheidet sich nicht
+
+---
+S2 = r1(x) w2(x) c2 r1(x) c1
+
+- **Abhängigkeiten:** T1 → T2, T2 → T1
+- **Ergebnis:** nicht Serialisierbar    
+- **Beobachtung:** Wert von `x` unterscheidet sich nicht
+
+---
+S3 = r2(x) w1(x) w1(y) c1 r2(y) w2(x) w2(y) c2
+
+- **Abhängigkeiten:** T1 → T2, T2 → T1
+- **Ergebnis:** nicht Serialisierbar  
+- **Beobachtung:** Werte von `x` und `y` unterscheiden sich nicht zu 3.3.a
