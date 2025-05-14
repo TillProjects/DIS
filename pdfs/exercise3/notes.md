@@ -121,7 +121,7 @@ id > 3 (do not complete/commit the transaction of the first connection). Using t
 add a new row to the table that satisfies the selection predicate. What happens? Execute the query again
 via the first connection. What can be observed? Finally, execute a commit.
 
-Der neue Eintrag erscheint -> non repeatable read
+Der neue Eintrag erscheint -> Phantom Problem 
 
 ### b)
 ![img.png](executionWithRR.png)
@@ -165,18 +165,15 @@ S1 = r1(x) w2(x) c2 w1(x) r1(x) c1
 
 - **Abhängigkeiten:** T1 → T2, T2 → T1
 - **Ergebnis:** nicht Serialisierbar  
-- **Beobachtung:** Wert von `x` unterscheidet sich nicht
 
 ---
 S2 = r1(x) w2(x) c2 r1(x) c1
 
 - **Abhängigkeiten:** T1 → T2, T2 → T1
 - **Ergebnis:** nicht Serialisierbar    
-- **Beobachtung:** Wert von `x` unterscheidet sich nicht
 
 ---
 S3 = r2(x) w1(x) w1(y) c1 r2(y) w2(x) w2(y) c2
 
 - **Abhängigkeiten:** T1 → T2, T2 → T1
 - **Ergebnis:** nicht Serialisierbar  
-- **Beobachtung:** Werte von `x` und `y` unterscheiden sich nicht zu 3.3.a
