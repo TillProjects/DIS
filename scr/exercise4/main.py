@@ -29,16 +29,17 @@ class PersistenceManager:
                 if cls._instance is None:
                     cls._instance = cls()
         return cls._instance
-
+        
     def begin_transaction(self):
         """
-        Starts a new transaction by assigning a unique transaction ID.
+        Starts a new transaction by assigning a unique transaction ID and logging BOT.
         Returns:
             int: newly assigned transaction ID
         """
         with self.buffer_lock:
             taid = len(self.transactions) + 1001
             self.transactions[taid] = 'active'
+            self._write_log(f"{self._next_lsn()}, {taid}, BOT")  # Begin of Transaction
             return taid
 
     def commit(self, taid):
