@@ -2,6 +2,7 @@ import os
 import threading
 import time
 from collections import defaultdict
+import random
 
 class PersistenceManager:
     _instance = None
@@ -18,6 +19,11 @@ class PersistenceManager:
 
     @classmethod
     def get_instance(cls):
+        """
+        Ensures a single shared instance of the PersistenceManager (Singleton pattern).
+        Returns:
+            PersistenceManager: the shared instance
+        """
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -25,18 +31,35 @@ class PersistenceManager:
         return cls._instance
 
     def begin_transaction(self):
+        """
+        Starts a new transaction by assigning a unique transaction ID.
+        Returns:
+            int: newly assigned transaction ID
+        """
         with self.buffer_lock:
             taid = len(self.transactions) + 1001
             self.transactions[taid] = 'active'
             return taid
 
     def commit(self, taid):
+        """
+        Commits the given transaction.
+        Args:
+            taid (int): Transaction ID to commit
+        """
         with self.buffer_lock:
             self._write_log(f"{self._next_lsn()}, {taid}, EOT")
             self.transactions[taid] = 'committed'
             self._flush_buffer()
 
     def write(self, taid, pageid, data):
+        """
+        Buffers a write operation and logs it.
+        Args:
+            taid (int): Transaction ID performing the write
+            pageid (int): Identifier of the page being written to
+            data (str): The data to write
+        """
         with self.buffer_lock:
             lsn = self._next_lsn()
             self._write_log(f"{lsn}, {taid}, {pageid}, {data}")
@@ -45,15 +68,28 @@ class PersistenceManager:
             self._check_buffer()
 
     def _next_lsn(self):
+        """
+        Generates the next unique LSN (log sequence number).
+        Returns:
+            int: new LSN
+        """
         lsn = self.lsn_counter
         self.lsn_counter += 1
         return lsn
 
     def _write_log(self, entry):
+        """
+        Appends a log entry to the log file.
+        Args:
+            entry (str): The log entry to write
+        """
         with open(self.log_file, 'a') as f:
             f.write(entry + '\n')
 
     def _check_buffer(self):
+        """
+        Flushes committed pages to disk if buffer exceeds threshold (noforce, nosteal policy).
+        """
         if len(self.buffer) > 5:
             for pageid, (lsn, data, taid) in list(self.buffer.items()):
                 if self.transactions.get(taid) == 'committed':
@@ -61,23 +97,43 @@ class PersistenceManager:
                     del self.buffer[pageid]
 
     def _flush_buffer(self):
+        """
+        Flushes all pages of committed transactions from the buffer to disk.
+        """
         for pageid, (lsn, data, taid) in list(self.buffer.items()):
             if self.transactions.get(taid) == 'committed':
                 self._write_page(pageid, lsn, data)
                 del self.buffer[pageid]
 
     def _write_page(self, pageid, lsn, data):
+        """
+        Writes a single page's data and LSN to persistent storage.
+        Args:
+            pageid (int): Page ID
+            lsn (int): Log sequence number
+            data (str): Data to write
+        """
         with open(f"page_{pageid}.txt", 'w') as f:
             f.write(f"{lsn}, {data}")
 
+# Thread class that simulates a client performing transactions
 class Client(threading.Thread):
     def __init__(self, client_id, page_range):
+        """
+        Initializes a client.
+        Args:
+            client_id (int): Unique client identifier
+            page_range (tuple): Range of page IDs the client may write to
+        """
         super().__init__()
         self.pm = PersistenceManager.get_instance()
         self.client_id = client_id
         self.page_range = page_range
 
     def run(self):
+        """
+        Executes a series of transactions with random writes.
+        """
         for _ in range(3):
             taid = self.pm.begin_transaction()
             for _ in range(2):
@@ -89,14 +145,27 @@ class Client(threading.Thread):
             time.sleep(0.2)
 
     def _get_random_page(self):
-        import random
+        """
+        Selects a random page ID within the client's range.
+        Returns:
+            int: Random page ID
+        """
         return random.randint(*self.page_range)
 
+# Tool that implements crash recovery by performing analysis and redo
 class RecoveryTool:
     def __init__(self, log_file='log.txt'):
+        """
+        Initializes the recovery tool.
+        Args:
+            log_file (str): Path to the log file
+        """
         self.log_file = log_file
 
     def recover(self):
+        """
+        Performs analysis to identify committed transactions and re-applies their changes.
+        """
         committed = set()
         operations = []
 
@@ -114,6 +183,13 @@ class RecoveryTool:
                 self._redo(pageid, lsn, data)
 
     def _redo(self, pageid, lsn, data):
+        """
+        Re-applies a committed write if the current LSN on disk is older.
+        Args:
+            pageid (int): Page ID to update
+            lsn (int): LSN from the log
+            data (str): Data to write
+        """
         filename = f"page_{pageid}.txt"
         current_lsn = -1
         if os.path.exists(filename):
@@ -126,8 +202,10 @@ class RecoveryTool:
             with open(filename, 'w') as f:
                 f.write(f"{lsn}, {data}")
 
+# Entry point: starts clients and performs recovery simulation
 if __name__ == "__main__":
-    clients = [Client(i, (10 * i, 10 * i + 9)) for i in range(3)]
+    random.seed(42)  # For reproducibility
+    clients = [Client(i, (10 * i, 10 * i + 9)) for i in range(5)]
     for client in clients:
         client.start()
     for client in clients:
