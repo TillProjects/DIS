@@ -3,6 +3,7 @@ import threading
 import time
 from collections import defaultdict
 import random
+import sys
 
 class PersistenceManager:
     _instance = None
@@ -156,20 +157,13 @@ class Client(threading.Thread):
 # Tool that implements crash recovery by performing analysis and redo
 class RecoveryTool:
     def __init__(self, log_file='log.txt'):
-        """
-        Initializes the recovery tool.
-        Args:
-            log_file (str): Path to the log file
-        """
         self.log_file = log_file
 
-    def recover(self):
-        """
-        Performs analysis to identify committed transactions and re-applies their changes.
-        """
+    def recover(self, verbose=False):
         committed = set()
         operations = []
 
+        print("🔍 Analyzing log for committed transactions and pending operations...")
         with open(self.log_file, 'r') as f:
             for line in f:
                 parts = line.strip().split(', ')
@@ -179,18 +173,19 @@ class RecoveryTool:
                     lsn, taid, pageid, data = int(parts[0]), int(parts[1]), int(parts[2]), parts[3]
                     operations.append((lsn, taid, pageid, data))
 
+        print(f"✅ Winner Transactions (committed): {sorted(committed)}")
+        print("📝 Pending Operations:")
+        for lsn, taid, pageid, data in operations:
+            if taid in committed:
+                print(f"  - LSN {lsn}, TID {taid}, Page {pageid}, Data '{data}'")
+
         for lsn, taid, pageid, data in operations:
             if taid in committed:
                 self._redo(pageid, lsn, data)
+                if verbose:
+                    print(f"  🔁 Redo applied: Page {pageid} ← {data} (LSN {lsn})")
 
     def _redo(self, pageid, lsn, data):
-        """
-        Re-applies a committed write if the current LSN on disk is older.
-        Args:
-            pageid (int): Page ID to update
-            lsn (int): LSN from the log
-            data (str): Data to write
-        """
         filename = f"page_{pageid}.txt"
         current_lsn = -1
         if os.path.exists(filename):
@@ -203,16 +198,38 @@ class RecoveryTool:
             with open(filename, 'w') as f:
                 f.write(f"{lsn}, {data}")
 
-# Entry point: starts clients and performs recovery simulation
 if __name__ == "__main__":
-    random.seed(42)  # For reproducibility
-    clients = [Client(i, (10 * i, 10 * i + 9)) for i in range(5)]
-    for client in clients:
-        client.start()
-    for client in clients:
-        client.join()
+    random.seed(42)
 
-    print("--- Simulating Recovery ---")
-    recovery = RecoveryTool()
-    recovery.recover()
-    print("Recovery finished.")
+    if len(sys.argv) < 2:
+        print("Please run with argument 1 (normal), 2 (crash), or 3 (recovery)")
+        sys.exit(1)
+
+    mode = sys.argv[1]
+
+    if mode == "1":
+        print("Running: Normal execution")
+        clients = [Client(i, (10 * i, 10 * i + 9)) for i in range(5)]
+        for client in clients:
+            client.start()
+        for client in clients:
+            client.join()
+        print("Normal execution completed: All transactions committed.")
+
+    elif mode == "2":
+        print("💥 Running: Simulated crash (interrupt early)")
+        clients = [Client(i, (10 * i, 10 * i + 9)) for i in range(5)]
+        for client in clients:
+            client.start()
+        time.sleep(0.8)
+        print("💣 Simulated crash: Terminating before all commits")
+        os._exit(1)
+
+    elif mode == "3":
+        print("🔁 Running: Recovery mode")
+        recovery = RecoveryTool()
+        recovery.recover(verbose=True)
+        print("✅ Recovery completed.")
+
+    else:
+        print("❗ Invalid argument. Use 1 (normal), 2 (crash), or 3 (recovery).")
