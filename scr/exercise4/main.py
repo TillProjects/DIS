@@ -161,48 +161,71 @@ class RecoveryTool:
 
     def recover(self, verbose=False):
         committed = set()
+        uncommitted = set()
         operations = []
 
-        print("🔍 Analyzing log for committed transactions and pending operations...")
-        with open(self.log_file, 'r') as f:
+        print(" Analyzing log for committed and uncommitted transactions...")
+        with open(self.log_file, "r") as f:
             for line in f:
-                parts = line.strip().split(', ')
-                if len(parts) == 3 and parts[2] == 'EOT':
-                    committed.add(int(parts[1]))
+                parts = line.strip().split(", ")
+                if len(parts) == 3:
+                    lsn, taid, op = int(parts[0]), int(parts[1]), parts[2]
+                    if op == "BOT":
+                        uncommitted.add(taid)
+                    elif op == "EOT":
+                        committed.add(taid)
+                        uncommitted.discard(taid)
                 elif len(parts) == 4:
-                    lsn, taid, pageid, data = int(parts[0]), int(parts[1]), int(parts[2]), parts[3]
+                    lsn, taid, pageid, data = (
+                        int(parts[0]),
+                        int(parts[1]),
+                        int(parts[2]),
+                        parts[3],
+                    )
                     operations.append((lsn, taid, pageid, data))
 
-        print(f"✅ Winner Transactions (committed): {sorted(committed)}")
-        print("📝 Pending Operations:")
-        for lsn, taid, pageid, data in operations:
-            if taid in committed:
-                print(f"  - LSN {lsn}, TID {taid}, Page {pageid}, Data '{data}'")
+        print(f"Winner Transactions (committed): {sorted(committed)}")
+        print(f"Loser Transactions (uncommitted): {sorted(uncommitted)}")
 
+        # Sort operations by LSN
+        operations.sort(key=lambda x: x[0])
+
+        print("Redoing operations for committed transactions:")
         for lsn, taid, pageid, data in operations:
             if taid in committed:
-                self._redo(pageid, lsn, data)
-                if verbose:
-                    print(f"  🔁 Redo applied: Page {pageid} ← {data} (LSN {lsn})")
+                if self._redo(pageid, lsn, data):
+                    if verbose:
+                        print(f"Redone: Page {pageid} ← '{data}' (LSN {lsn})")
+                else:
+                    if verbose:
+                        print(f"Skipped: Page {pageid} already has LSN >= {lsn}")
 
     def _redo(self, pageid, lsn, data):
+        """
+        Redo operation if current page LSN < log LSN.
+        Returns True if redo was applied, False otherwise.
+        """
         filename = f"page_{pageid}.txt"
         current_lsn = -1
         if os.path.exists(filename):
-            with open(filename, 'r') as f:
+            with open(filename, "r") as f:
                 content = f.read().strip()
                 if content:
-                    parts = content.split(', ')
-                    current_lsn = int(parts[0])
+                    parts = content.split(", ")
+                    if parts[0].isdigit():
+                        current_lsn = int(parts[0])
         if lsn > current_lsn:
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 f.write(f"{lsn}, {data}")
+            return True
+        return False
+
 
 if __name__ == "__main__":
     random.seed(42)
 
     if len(sys.argv) < 2:
-        print("Please run with argument 1 (normal), 2 (crash), or 3 (recovery)")
+        print("Please run with argument 1 (normal) or 2 (recovery)")
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -217,19 +240,10 @@ if __name__ == "__main__":
         print("Normal execution completed: All transactions committed.")
 
     elif mode == "2":
-        print("💥 Running: Simulated crash (interrupt early)")
-        clients = [Client(i, (10 * i, 10 * i + 9)) for i in range(5)]
-        for client in clients:
-            client.start()
-        time.sleep(0.8)
-        print("💣 Simulated crash: Terminating before all commits")
-        os._exit(1)
-
-    elif mode == "3":
-        print("🔁 Running: Recovery mode")
+        print(" Running: Recovery mode")
         recovery = RecoveryTool()
         recovery.recover(verbose=True)
-        print("✅ Recovery completed.")
+        print(" Recovery completed.")
 
     else:
-        print("❗ Invalid argument. Use 1 (normal), 2 (crash), or 3 (recovery).")
+        print("Invalid argument. Use 1 (normal), 2 (crash), or 3 (recovery).")
