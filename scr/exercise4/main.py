@@ -136,9 +136,9 @@ class Client(threading.Thread):
         """
         Executes a series of transactions with random writes.
         """
-        for _ in range(3):
+        for _ in range(10):
             taid = self.pm.begin_transaction()
-            for _ in range(2):
+            for _ in range(200):
                 pageid = self._get_random_page()
                 data = f"Data_{self.client_id}_{pageid}"
                 self.pm.write(taid, pageid, data)
@@ -198,7 +198,8 @@ class RecoveryTool:
                         print(f"Redone: Page {pageid} ← '{data}' (LSN {lsn})")
                 else:
                     if verbose:
-                        print(f"Skipped: Page {pageid} already has LSN >= {lsn}")
+                        pass
+                        # print(f"Skipped: Page {pageid} already has LSN >= {lsn}")
 
     def _redo(self, pageid, lsn, data):
         """
@@ -240,10 +241,10 @@ if __name__ == "__main__":
         print("Normal execution completed: All transactions committed.")
 
     elif mode == "2":
-        print(" Running: Recovery mode")
+        print("Running: Recovery mode")
         recovery = RecoveryTool()
         recovery.recover(verbose=True)
         print(" Recovery completed.")
 
     else:
-        print("Invalid argument. Use 1 (normal), 2 (crash), or 3 (recovery).")
+        print("Invalid argument. Use 1 (normal), 2 (recovery).")
