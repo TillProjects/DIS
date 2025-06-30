@@ -11,7 +11,10 @@ requires-python = ">=3.12"
 dependencies = [
     "psycopg2-binary>=2.9",
     "python-dotenv",
-    "sqlalchemy (>=2.0.40,<3.0.0)"
+    "sqlalchemy (>=2.0.40,<3.0.0)",
+    "pandas (>=2.3.0,<3.0.0)",
+    "notebook (>=7.4.3,<8.0.0)",
+    "chardet (>=5.2.0,<6.0.0)"
 ]
 
 [tool.poetry]

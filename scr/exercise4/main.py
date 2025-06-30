@@ -248,3 +248,4 @@ if __name__ == "__main__":
 
     else:
         print("Invalid argument. Use 1 (normal), 2 (recovery).")
+
