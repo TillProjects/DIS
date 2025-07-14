@@ -13,4 +13,3 @@ __pycache__/
 *.log
 .env
 *.json
-scr/exercise5/src/data/
