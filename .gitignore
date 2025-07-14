@@ -12,5 +12,5 @@ __pycache__/
 # Logs oder temporäres
 *.log
 .env
-
+*.json
 scr/exercise5/src/data/
