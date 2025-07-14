@@ -1,8 +1,7 @@
 from collections import defaultdict
-import itertools
 
 # -----------------------------
-# 🔹 Hilfsfunktion: Items zählen
+#  Hilfsfunktion: Items zählen
 # -----------------------------
 def count_single_items(transactions):
     item_count = defaultdict(int)
@@ -12,13 +11,13 @@ def count_single_items(transactions):
     return item_count
 
 # --------------------------------------------
-# 🔹 Hilfsfunktion: Filtere nach Mindest-Support
+#  Hilfsfunktion: Filtere nach Mindest-Support
 # --------------------------------------------
 def filter_itemsets_by_support(counts, minsup_count):
     return {item for item, count in counts.items() if count >= minsup_count}
 
 # -----------------------------------------
-# 🔹 Hilfsfunktion: Kandidaten erzeugen (Ck)
+#  Hilfsfunktion: Kandidaten erzeugen (Ck)
 # -----------------------------------------
 def generate_candidates(prev_itemsets, k):
     candidates = set()
@@ -31,7 +30,7 @@ def generate_candidates(prev_itemsets, k):
     return candidates
 
 # ------------------------------------------------------
-# 🔹 Hilfsfunktion: Zähle Support für gegebene Kandidaten
+#  Hilfsfunktion: Zähle Support für gegebene Kandidaten
 # ------------------------------------------------------
 def count_support(transactions, candidates):
     candidate_count = defaultdict(int)
@@ -43,7 +42,7 @@ def count_support(transactions, candidates):
     return candidate_count
 
 # ------------------------------------------
-# 🔹 Hauptfunktion: Apriori-Algorithmus
+#  Hauptfunktion: Apriori-Algorithmus
 # ------------------------------------------
 def apriori(transactions, minsup_ratio):
     num_transactions = len(transactions)
@@ -78,7 +77,25 @@ def apriori(transactions, minsup_ratio):
     return itemsets_by_size, frequent_itemsets_with_support
 
 # ------------------------------------------
-# 🔹 Main: Einlesen & Ausführen
+#  Main: Einlesen & Ausführen
 # ------------------------------------------
 if __name__ == "__main__":
-    # Tr
+    # Transaktionen einlesen
+    with open("transactions.txt", "r") as file:
+        transactions = [list(map(int, line.strip().split())) for line in file]
+
+    # Mindest-Support (z. B. 1%)
+    minsup_ratio = 0.01
+
+    # Apriori ausführen
+    itemsets_by_size, frequent_itemsets_with_support = apriori(transactions, minsup_ratio)
+
+    # Ausgabe: Anzahl pro Itemset-Größe
+    print("Anzahl häufiger Itemsets pro Länge:")
+    for k, itemsets in itemsets_by_size.items():
+        print(f"  {k}er Itemsets: {len(itemsets)}")
+
+    # Ausgabe: Häufige Itemsets mit Support speichern
+    with open("frequent_itemsets_with_support.txt", "w") as f:
+        for itemset, support in frequent_itemsets_with_support:
+            f.write(f"{itemset}: {support}%\n")
