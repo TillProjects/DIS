@@ -1,77 +1,91 @@
-from itertools import combinations
-from collections import defaultdict
-import math
+from collections import defaultdict, Counter
+from typing import List, Tuple, Set, Dict
 
-MIN_SUPPORT_PERCENT = 1.0  # Minimum support in %
-TRANSACTIONS_FILE = "Transactions.txt"
+# Typ: Transaktion = Liste von ganzen Zahlen
+Transaction = List[int]
+Itemset = Tuple[int, ...]
+Transactions = List[Transaction]
 
-def load_transactions(filename):
-    transactions = []
-    with open(filename, 'r') as file:
-        for line in file:
-            items = tuple(sorted(map(int, line.strip().split())))
-            if items:
-                transactions.append(items)
-    return transactions
+# Zählt einzelne Items (als Tupel)
+def count_single_items(transactions: Transactions) -> Counter[Itemset]:
+    flat_items = [(item,) for transaction in transactions for item in transaction]
+    return Counter(flat_items)
 
-def get_frequent_itemsets(transactions, minsup_count):
-    itemsets = defaultdict(int)
-    for transaction in transactions:
-        for item in transaction:
-            itemsets[(item,)] += 1
-    L = {k: v for k, v in itemsets.items() if v >= minsup_count}
-    all_frequent_itemsets = dict()
-    k = 1
-    while L:
-        all_frequent_itemsets[k] = L
-        k += 1
-        candidate_counts = defaultdict(int)
-        prev_itemsets = list(L.keys())
-        candidates = generate_candidates(prev_itemsets, k)
-        for transaction in transactions:
-            transaction_set = set(transaction)
-            for candidate in candidates:
-                if set(candidate).issubset(transaction_set):
-                    candidate_counts[candidate] += 1
-        L = {k: v for k, v in candidate_counts.items() if v >= minsup_count}
-    return all_frequent_itemsets, len(transactions)
+# Filtert Itemsets mit genug Support
+def filter_itemsets_by_support(counts: Dict[Itemset, int], minsup_count: int) -> Set[Itemset]:
+    return {item for item, count in counts.items() if count >= minsup_count}
 
-def generate_candidates(prev_itemsets, k):
+# Generiert Kandidaten der Länge k aus den vorherigen Itemsets
+def generate_candidates(prev_itemsets: Set[Itemset], k: int) -> Set[Itemset]:
     candidates = set()
-    len_prev = len(prev_itemsets)
-    for i in range(len_prev):
-        for j in range(i + 1, len_prev):
-            l1, l2 = prev_itemsets[i], prev_itemsets[j]
-            if l1[:k - 2] == l2[:k - 2]:
-                new_candidate = tuple(sorted(set(l1) | set(l2)))
-                if len(new_candidate) == k and all(tuple(sorted(sub)) in prev_itemsets for sub in combinations(new_candidate, k - 1)):
-                    candidates.add(new_candidate)
+    prev_list = list(prev_itemsets)
+    for i in range(len(prev_list)):
+        for j in range(i + 1, len(prev_list)):
+            union = tuple(sorted(set(prev_list[i]) | set(prev_list[j])))
+            if len(union) == k:
+                candidates.add(union)
     return candidates
 
-def format_results(frequent_itemsets, total_transactions):
-    print("Anzahl der häufigen Itemsets je Größe:")
-    for size in sorted(frequent_itemsets.keys()):
-        print(f"- {size}-Itemsets: {len(frequent_itemsets[size])}")
-    print("\nHäufige Itemsets (ab Größe 2) mit Support (%):")
-    result_list = []
-    for size in sorted(frequent_itemsets.keys()):
-        if size < 2:
-            continue
-        for itemset, count in frequent_itemsets[size].items():
-            support = 100 * count / total_transactions
-            result_list.append((itemset, f"{support:.2f}%"))
-    for itemset, support in result_list:
-        print(f"{itemset}: {support}")
-    # Optional: speichern
-    with open("frequent_itemsets.txt", "w") as f:
-        for itemset, support in result_list:
-            f.write(f"{itemset}: {support}\n")
+# Zählt, wie oft Kandidaten in Transaktionen vorkommen
+def count_support(transactions: Transactions, candidates: Set[Itemset]) -> Dict[Itemset, int]:
+    candidate_count = defaultdict(int)
+    for transaction in transactions:
+        t_set = set(transaction)
+        for candidate in candidates:
+            if set(candidate).issubset(t_set):
+                candidate_count[candidate] += 1
+    return candidate_count
 
-def main():
-    transactions = load_transactions(TRANSACTIONS_FILE)
-    minsup_count = math.ceil(len(transactions) * MIN_SUPPORT_PERCENT / 100)
-    frequent_itemsets, total = get_frequent_itemsets(transactions, minsup_count)
-    format_results(frequent_itemsets, total)
+# Führt den Apriori-Algorithmus aus
+def apriori(transactions: Transactions, minsup_ratio: float) -> Tuple[Dict[int, Set[Itemset]], List[Tuple[Itemset, float]]]:
+    num_transactions = len(transactions)
+    minsup_count = int(minsup_ratio * num_transactions)
 
+    itemsets_by_size: Dict[int, Set[Itemset]] = dict()
+    frequent_itemsets_with_support: List[Tuple[Itemset, float]] = []
+
+    # Schritt 1: 1-Itemsets zählen & filtern
+    single_counts = count_single_items(transactions)
+    L1 = filter_itemsets_by_support(single_counts, minsup_count)
+    itemsets_by_size[1] = L1
+
+    # Wiederholung für k ≥ 2
+    k = 2
+    L_prev = L1
+
+    while L_prev:
+        candidates = generate_candidates(L_prev, k)
+        candidate_counts = count_support(transactions, candidates)
+        Lk = filter_itemsets_by_support(candidate_counts, minsup_count)
+
+        if Lk:
+            itemsets_by_size[k] = Lk
+            for itemset in Lk:
+                support = candidate_counts[itemset] / num_transactions * 100
+                frequent_itemsets_with_support.append((itemset, round(support, 2)))
+
+        L_prev = Lk
+        k += 1
+
+    return itemsets_by_size, frequent_itemsets_with_support
+
+# Main: Einlesen & Ausführen
 if __name__ == "__main__":
-    main()
+    # Transaktionen einlesen
+    with open("transactions.txt", "r") as file:
+        transactions: Transactions = [list(map(int, line.strip().split())) for line in file]
+
+    minsup_ratio = 0.01
+
+    # Apriori ausführen
+    itemsets_by_size, frequent_itemsets_with_support = apriori(transactions, minsup_ratio)
+
+    # Ausgabe: Anzahl pro Itemset-Größe
+    print("Anzahl häufiger Itemsets pro Länge:")
+    for k, itemsets in itemsets_by_size.items():
+        print(f"  {k}er Itemsets: {len(itemsets)}")
+
+    # Ausgabe: Häufige Itemsets mit Support speichern
+    with open("frequent_itemsets_with_support.txt", "w") as f:
+        for itemset, support in frequent_itemsets_with_support:
+            f.write(f"{itemset}: {support}%\n")
